@@ -35,9 +35,9 @@ enum Copy {
     static func quips(for mood: Mood, snoozeCount: Int) -> [String] {
         if snoozeCount >= 2 && (mood == .tired || mood == .urgent) {
             return [
-                "已经赖了 \(snoozeCount) 次了，我都替你脸红",
+                "已延后 \(snoozeCount) 次，忙完记得活动一下",
                 "椅子：它今天是不是不打算走了？",
-                "这一轮赖了 \(snoozeCount) 次，腰椎已提交投诉",
+                "有空时，站起来走两步吧",
             ]
         }
         switch mood {
@@ -57,23 +57,15 @@ enum Copy {
             return ["起来啦起来啦！", "伸个懒腰吧～", "走两步，看看窗外",
                     "身体：终于！", "这几分钟属于你的腰和腿"]
         case .sleeping:
-            return ["zZZ… 暂停中", "开完会记得叫醒我", "我先眯一会儿，你忙", "暂停不是赖床的借口哦"]
+            return ["zZZ… 暂停中", "开完会记得叫醒我", "我先眯一会儿，你忙", "忙完后，记得回来继续计时"]
         }
     }
 
     static func snoozeLabel(count: Int, minutes: Int) -> String {
-        switch count {
-        case 0: return "再赖 \(minutes) 分钟"
-        case 1: return "还要赖？再 \(minutes) 分钟"
-        default: return "屁股要长椅子上了…再 \(minutes) 分钟"
-        }
+        "稍后提醒（\(minutes) 分钟）"
     }
 
     static func snoozeQuip(count: Int, minutes: Int) -> String {
-        switch count {
-        case 1: return "好吧，就 \(minutes) 分钟哦，我盯着呢"
-        case 2: return "第二次了…腰椎已经开始写投诉信"
-        default: return "赖了 \(count) 次，我决定叫你椅子精"
-        }
+        "好的，\(minutes) 分钟后再提醒你"
     }
 }

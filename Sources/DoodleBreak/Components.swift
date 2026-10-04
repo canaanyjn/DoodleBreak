@@ -219,7 +219,7 @@ struct RingTimer: View {
 
     private var subText: String {
         switch tracker.phase {
-        case .sitting: return tracker.snoozeCount > 0 ? "已赖床 \(tracker.snoozeCount) 次" : "距离起身"
+        case .sitting: return tracker.snoozeCount > 0 ? "已延后 \(tracker.snoozeCount) 次" : "距离起身"
         case .onBreak: return "休息中 · 动一动"
         case .paused: return "已暂停"
         }

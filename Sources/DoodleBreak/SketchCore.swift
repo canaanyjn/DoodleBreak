@@ -67,8 +67,12 @@ enum SketchCore {
                 if current.isEmpty { current = [p0] }
                 sample(count: max(2, Int(ceil((dist(p0, c) + dist(c, p)) / step)))) { t in
                     let m = 1 - t
-                    return CGPoint(x: m * m * p0.x + 2 * m * t * c.x + t * t * p.x,
-                                   y: m * m * p0.y + 2 * m * t * c.y + t * t * p.y)
+                    let a: CGFloat = m * m
+                    let b: CGFloat = 2 * m * t
+                    let d: CGFloat = t * t
+                    let x: CGFloat = a * p0.x + b * c.x + d * p.x
+                    let y: CGFloat = a * p0.y + b * c.y + d * p.y
+                    return CGPoint(x: x, y: y)
                 }
                 last = p
             case .addCurveToPoint:

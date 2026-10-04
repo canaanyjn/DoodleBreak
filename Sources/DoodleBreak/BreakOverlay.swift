@@ -73,7 +73,10 @@ struct BreakOverlayView: View {
                 }
                 .padding(.top, 8)
 
-                Text("按 Esc 也能赖床，不过我会记在小本本上")
+                InkButton(title: "跳过本次", kind: .quiet, size: 13) { tracker.skipBreak() }
+                    .help("\(tracker.settings.sitMinutes) 分钟后再提醒，不计为完成休息")
+
+                Text("本次\(tracker.breakKind) · 按 Esc 可以稍后提醒")
                     .font(Hand.font(13))
                     .foregroundStyle(Ink.pencil.opacity(0.8))
                     .padding(.top, 2)

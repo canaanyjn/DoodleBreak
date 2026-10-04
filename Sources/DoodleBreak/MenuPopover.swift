@@ -14,8 +14,9 @@ struct MenuPopover: View {
         VStack(spacing: 12) {
             header
             if showSettings {
-                SettingsView()
-                    .padding(.top, 4)
+                ScrollView {
+                    SettingsView().padding(.top, 4).padding(.bottom, 8)
+                }
                 Spacer(minLength: 0)
                 HStack(alignment: .center, spacing: 4) {
                     Mascot(mood: .fresh, size: 64)
@@ -64,7 +65,7 @@ struct MenuPopover: View {
         Group {
             switch tracker.phase {
             case .sitting:
-                Text("已坐 \(Format.minutes(tracker.sitElapsed)) · 预计 \(Format.clock.string(from: tracker.expectedBreakAt)) 喊你起来")
+                Text("已坐 \(Format.minutes(tracker.sitElapsed)) · 预计 \(Format.clock.string(from: tracker.expectedBreakAt)) \(tracker.breakKind)")
             case .onBreak:
                 Text("刚才坐了 \(Format.minutes(tracker.lastSitLength))。\(tracker.stretch.text)")
             case .paused:
@@ -80,13 +81,14 @@ struct MenuPopover: View {
     private var statsRow: some View {
         HStack(spacing: 10) {
             StatTile(value: "\(tracker.stats.standUps)", label: "今日起身", tilt: -1.2)
-            StatTile(value: "\(tracker.stats.snoozes)", label: "今日赖床", tilt: 0.8)
+            StatTile(value: "\(tracker.stats.snoozes)", label: "今日延后", tilt: 0.8)
             StatTile(value: Format.shortMinutes(tracker.stats.longestSitSeconds), label: "最长连坐", tilt: -0.5)
         }
     }
 
     @ViewBuilder
     private var actions: some View {
+        VStack(spacing: 8) {
         HStack(spacing: 10) {
             switch tracker.phase {
             case .sitting:
@@ -101,6 +103,11 @@ struct MenuPopover: View {
                 InkButton(title: "继续", kind: .primary, size: 14) { tracker.resume() }
                 InkButton(title: "重新计时", size: 14) { tracker.resetSit() }
             }
+        }
+        if tracker.phase == .onBreak {
+            InkButton(title: "跳过本次", kind: .quiet, size: 13) { tracker.skipBreak() }
+                .help("\(tracker.settings.sitMinutes) 分钟后再提醒，不计为完成休息")
+        }
         }
     }
 
@@ -128,10 +135,23 @@ struct SettingsView: View {
                 .foregroundStyle(Ink.blue)
                 .padding(.horizontal, 6)
                 .background(Highlight(seed: 31).padding(.horizontal, -4))
+            HandCheckbox(title: "短休息与长休息交替", hint: "完成若干次休息后，多休息一会儿", isOn: Binding(
+                get: { tracker.settings.alternatingBreaks == true },
+                set: { tracker.settings.alternatingBreaks = $0 }))
+            if tracker.settings.alternatingBreaks == true {
+                HandStepper(title: "每几轮安排长休息", value: Binding(
+                    get: { tracker.settings.longBreakEvery ?? 4 },
+                    set: { tracker.settings.longBreakEvery = $0 }), range: 2...6, step: 1, unit: "轮")
+                HandStepper(title: "长休息时长", value: Binding(
+                    get: { tracker.settings.longBreakMinutes ?? 10 },
+                    set: { tracker.settings.longBreakMinutes = $0 }), range: 5...30, step: 1, unit: "分钟")
+                Text("下一次：\(tracker.breakKind) · \(Int(tracker.breakDuration / 60)) 分钟。长休息不会短于普通休息。")
+                    .font(Hand.font(12)).foregroundStyle(Ink.pencil)
+            }
             HandStepper(title: "每坐多久提醒", value: $tracker.settings.sitMinutes, range: 10...120, step: 5, unit: "分钟")
             HandStepper(title: "每次休息多久", value: $tracker.settings.breakMinutes, range: 1...15, step: 1, unit: "分钟")
             HandStepper(title: "锁屏/睡眠多久算起身", value: $tracker.settings.idleMinutes, range: 2...15, step: 1, unit: "分钟")
-            HandStepper(title: "赖床一次延后", value: $tracker.settings.snoozeMinutes, range: 3...15, step: 1, unit: "分钟")
+            HandStepper(title: "稍后提醒延后", value: $tracker.settings.snoozeMinutes, range: 3...15, step: 1, unit: "分钟")
             Squiggle(seed: 77, color: Ink.pencil.opacity(0.6), width: 0.9)
                 .frame(height: 6)
                 .padding(.vertical, 2)

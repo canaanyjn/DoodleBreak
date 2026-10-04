@@ -14,10 +14,13 @@ enum Mood: String, CaseIterable, Hashable {
 }
 
 struct Settings: Codable, Equatable {
+    var alternatingBreaks: Bool? = false
+    var longBreakMinutes: Int? = 10
+    var longBreakEvery: Int? = 4
     var sitMinutes = 45          // 坐多久提醒
     var breakMinutes = 3         // 休息多久
     var idleMinutes = 4          // 锁屏 / 睡眠多久算起身过
-    var snoozeMinutes = 5        // 赖床一次延后多久
+    var snoozeMinutes = 5        // 稍后提醒延后多久
     var soundEnabled = true
     var overlayEnabled = true    // 全屏提醒；关掉则只发系统通知
     var showTimeInMenuBar = true
@@ -31,6 +34,7 @@ struct SessionState: Codable {
     var snoozeCount: Int
     var extraSeconds: TimeInterval
     var lastSitLength: TimeInterval
+    var completedBreaks: Int? = 0
     var lastAlive: Date   // App 最后一次确认自己活着的时间
 }
 
@@ -53,6 +57,7 @@ final class SitTracker: ObservableObject {
     /// 坐够这么久（以"应用内秒"计）才算一次真正的起身
     static let minCountedSit: TimeInterval = 5 * 60
 
+    @Published private(set) var completedBreaks = 0
     @Published private(set) var phase: Phase = .sitting
     @Published private(set) var sitElapsed: TimeInterval = 0
     @Published private(set) var breakElapsed: TimeInterval = 0
@@ -97,7 +102,16 @@ final class SitTracker: ObservableObject {
     // MARK: - 派生状态
 
     var sitDuration: TimeInterval { Double(settings.sitMinutes) * 60 + extraSeconds }
-    var breakDuration: TimeInterval { Double(settings.breakMinutes) * 60 }
+    var isLongBreak: Bool {
+        settings.alternatingBreaks == true && completedBreaks >= max(2, settings.longBreakEvery ?? 4) - 1
+    }
+    var breakKind: String { settings.alternatingBreaks == true ? (isLongBreak ? "长休息" : "短休息") : "休息" }
+    var breakDuration: TimeInterval {
+        Double(isLongBreak ? max(settings.breakMinutes, settings.longBreakMinutes ?? 10) : settings.breakMinutes) * 60
+    }
+    private func recordCompletedBreak() {
+        completedBreaks = isLongBreak || settings.alternatingBreaks != true ? 0 : completedBreaks + 1
+    }
     var sitRemaining: TimeInterval { max(0, sitDuration - sitElapsed) }
     var breakRemaining: TimeInterval { max(0, breakDuration - breakElapsed) }
     /// 锁屏 / 睡眠超过这么久（真实秒）才算起身过
@@ -167,7 +181,7 @@ final class SitTracker: ObservableObject {
 
     func saveSession(now: Date = Date()) {
         let state = SessionState(phase: phase, sitStart: sitStart, pausedAt: pausedAt, snoozeCount: snoozeCount,
-                                 extraSeconds: extraSeconds, lastSitLength: lastSitLength, lastAlive: now)
+                                 extraSeconds: extraSeconds, lastSitLength: lastSitLength, completedBreaks: completedBreaks, lastAlive: now)
         Self.save(state, "session", to: defaults)
     }
 
@@ -179,6 +193,7 @@ final class SitTracker: ObservableObject {
             return
         }
         let offFor = now.timeIntervalSince(st.lastAlive)
+        completedBreaks = st.completedBreaks ?? 0
         snoozeCount = st.snoozeCount
         extraSeconds = st.extraSeconds
         lastSitLength = st.lastSitLength
@@ -191,6 +206,7 @@ final class SitTracker: ObservableObject {
             } else if st.phase == .onBreak {
                 endSit(length: st.lastSitLength, countsAsStandUp: true, auto: false)
             }
+            completedBreaks = 0
             snoozeCount = 0
             extraSeconds = 0
             phase = .sitting
@@ -209,6 +225,7 @@ final class SitTracker: ObservableObject {
             pausedAt = st.pausedAt ?? st.lastAlive
         case .onBreak:
             // 休息到一半重启：算这次休息完成了
+            recordCompletedBreak()
             endSit(length: st.lastSitLength, countsAsStandUp: true, auto: false)
             phase = .sitting
             sitStart = now
@@ -258,6 +275,7 @@ final class SitTracker: ObservableObject {
         case .sitting:
             let length = max(0, since.timeIntervalSince(sitStart) * Self.speed)
             endSit(length: length, countsAsStandUp: length >= Self.minCountedSit, auto: true)
+            completedBreaks = 0
             sitStart = now
             sitElapsed = 0
             announce("欢迎回来！你离开了 \(Format.minutes(awayFor * Self.speed))，计时已重置")
@@ -325,6 +343,7 @@ final class SitTracker: ObservableObject {
     func finishBreak(early: Bool) {
         guard phase == .onBreak else { return }
         OverlayController.shared.hide()
+        recordCompletedBreak()
         endSit(length: lastSitLength, countsAsStandUp: true, auto: false)
         phase = .sitting
         let now = Date()
@@ -334,6 +353,19 @@ final class SitTracker: ObservableObject {
         saveSession(now: now)
         if settings.soundEnabled { Sounds.play("Pop") }
         announce(early ? "动完啦？真棒，新一轮开始" : "休息结束，欢迎回来")
+    }
+
+    /// 跳过只延后提醒，不结算休息，也不推进长短休息轮次。
+    func skipBreak(now: Date = Date()) {
+        guard phase == .onBreak else { return }
+        OverlayController.shared.hide()
+        phase = .sitting
+        sitElapsed = max(0, now.timeIntervalSince(sitStart) * Self.speed)
+        extraSeconds = sitElapsed
+        breakElapsed = 0
+        lastTick = now
+        saveSession(now: now)
+        announce("已跳过本次，\(settings.sitMinutes) 分钟后再提醒；久坐时间继续累计")
     }
 
     func snooze() {
@@ -377,6 +409,7 @@ final class SitTracker: ObservableObject {
     func resetSit() {
         if phase == .onBreak { OverlayController.shared.hide() }
         pausedAt = nil
+        completedBreaks = 0
         let length = phase == .onBreak ? lastSitLength : sitElapsed
         endSit(length: length, countsAsStandUp: length >= Self.minCountedSit, auto: false)
         phase = .sitting

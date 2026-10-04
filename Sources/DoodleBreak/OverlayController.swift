@@ -44,7 +44,7 @@ final class OverlayController {
         }
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak tracker] event in
-            guard event.keyCode == 53 else { return event }   // Esc = 赖床
+            guard event.keyCode == 53 else { return event }   // Esc = 稍后提醒
             MainActor.assumeIsolated { tracker?.snooze() }
             return nil
         }

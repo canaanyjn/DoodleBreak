@@ -72,13 +72,63 @@ enum SelfTest {
         tr.tick(now: t0.addingTimeInterval(10 * min))
         check("没收到睡眠通知但时钟跳了 10 分钟：兜底重置", tr.sitElapsed, 0)
 
+        tr = launch(nil)
+        tr.settings.soundEnabled = false
+        tr.settings.alternatingBreaks = true
+        tr.settings.longBreakEvery = 3
+        tr.settings.longBreakMinutes = 10
+        check("交替模式从短休息开始", tr.breakDuration, 3 * min)
+        for _ in 0..<2 {
+            tr.applyPreview(phase: .onBreak, progress: 1)
+            tr.finishBreak(early: false)
+        }
+        check("两次短休息后安排长休息", tr.breakDuration, 10 * min)
+        let saved = SitTracker(defaults: UserDefaults(suiteName: suite)!)
+        saved.restoreSession(now: Date())
+        check("重启保留长休息轮次", saved.isLongBreak ? 1 : 0, 1)
+        tr.applyPreview(phase: .onBreak, progress: 1)
+        tr.finishBreak(early: false)
+        check("长休息完成后重新从短休息开始", tr.breakDuration, 3 * min)
+        tr.settings.alternatingBreaks = false
+        check("固定模式保持原休息时长", tr.breakDuration, 3 * min)
+        tr = launch(sitting(since: 50 * min, alive: 5))
+        tr.settings.soundEnabled = false
+        tr.settings.alternatingBreaks = true
+        tr.settings.longBreakEvery = 2
+        tr.applyPreview(phase: .onBreak, progress: 1)
+        tr.finishBreak(early: false)
+        tr.applyPreview(phase: .onBreak, progress: 0.2)
+        let standUpsBeforeSkip = tr.stats.standUps
+        let snoozesBeforeSkip = tr.stats.snoozes
+        let skipAt = Date().addingTimeInterval(50 * min)
+        tr.skipBreak(now: skipAt)
+        check("跳过后回到计时状态", tr.phase == .sitting ? 1 : 0, 1)
+        check("跳过保留累计久坐时间", tr.sitElapsed, 50 * min)
+        check("跳过后等待完整提醒间隔", tr.sitRemaining, Double(tr.settings.sitMinutes) * min)
+        check("跳过不增加起身次数", Double(tr.stats.standUps), Double(standUpsBeforeSkip))
+        check("跳过不增加延后次数", Double(tr.stats.snoozes), Double(snoozesBeforeSkip))
+        check("跳过长休息后仍应安排长休息", tr.isLongBreak ? 1 : 0, 1)
+        let afterSkip = SitTracker(defaults: UserDefaults(suiteName: suite)!)
+        afterSkip.restoreSession(now: skipAt.addingTimeInterval(10))
+        check("重启保留跳过后的提醒时间", afterSkip.sitRemaining, Double(tr.settings.sitMinutes) * min - 10)
+        check("重启保留跳过前的轮次", afterSkip.isLongBreak ? 1 : 0, 1)
+        tr.tick(now: skipAt.addingTimeInterval(1))
+        check("跳过后不会立即再次提醒", tr.phase == .sitting ? 1 : 0, 1)
+        let remainingBefore = tr.sitRemaining
+        tr.skipBreak(now: skipAt.addingTimeInterval(2))
+        check("非休息状态忽略跳过操作", tr.sitRemaining, remainingBefore)
+
+        let legacy = Data(#"{"sitMinutes":50,"breakMinutes":5,"idleMinutes":4,"snoozeMinutes":5,"soundEnabled":false,"overlayEnabled":true,"showTimeInMenuBar":true}"#.utf8)
+        let oldSettings = try? JSONDecoder().decode(Settings.self, from: legacy)
+        check("兼容旧设置并保留原间隔", Double(oldSettings?.sitMinutes ?? 0), 50)
+
         UserDefaults().removePersistentDomain(forName: suite)
         print(failures == 0 ? "ALL PASSED" : "\(failures) FAILED")
         return failures == 0
     }
 
     private static func check(_ name: String, _ got: Double, _ want: Double) {
-        let ok = abs(got - want) < 2
+        let ok = abs(got - want) < 0.5
         if !ok { failures += 1 }
         print("\(ok ? "PASS" : "FAIL")  \(name)\(ok ? "" : "（得到 \(got)，期望 \(want)）")")
     }
