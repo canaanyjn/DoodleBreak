@@ -18,9 +18,9 @@ enum Ink {
 /// 手写字体：中文用翩翩体 / 手札体，英文标题用 Noteworthy
 enum Hand {
     static func font(_ size: CGFloat, bold: Bool = false) -> Font {
-        .custom(bold ? "HanziPenSC-W5" : "HanziPenSC-W3", size: size)
+        .custom(L10n.isChinese ? (bold ? "HanziPenSC-W5" : "HanziPenSC-W3") : (bold ? "Noteworthy-Bold" : "Noteworthy-Light"), size: size)
     }
-    static func title(_ size: CGFloat) -> Font { .custom("HannotateSC-W7", size: size) }
+    static func title(_ size: CGFloat) -> Font { .custom(L10n.isChinese ? "HannotateSC-W7" : "Noteworthy-Bold", size: size) }
     static func latin(_ size: CGFloat) -> Font { .custom("Noteworthy-Bold", size: size) }
 }
 
@@ -33,8 +33,8 @@ enum Format {
     /// "47 分钟" / "1 小时 05 分钟"
     static func minutes(_ t: TimeInterval) -> String {
         let m = max(0, Int(t / 60))
-        if m < 60 { return "\(m) 分钟" }
-        return "\(m / 60) 小时 \(String(format: "%02d", m % 60)) 分钟"
+        if m < 60 { return L10n.text("\(m) 分钟", "\(m) min") }
+        return L10n.text("\(m / 60) 小时 \(String(format: "%02d", m % 60)) 分钟", "\(m / 60) hr \(String(format: "%02d", m % 60)) min")
     }
 
     /// "52m" / "1h05m"
@@ -50,12 +50,12 @@ enum Format {
         return f
     }()
 
-    static let notebookDate: DateFormatter = {
+    static var notebookDate: DateFormatter {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "zh_CN")
-        f.dateFormat = "M月d日 EEE"
+        f.locale = Locale(identifier: L10n.isChinese ? "zh_CN" : "en_US")
+        f.dateFormat = L10n.isChinese ? "M月d日 EEE" : "MMM d, EEE"
         return f
-    }()
+    }
 }
 
 extension Array where Element: Equatable {

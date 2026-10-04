@@ -14,6 +14,7 @@ enum Mood: String, CaseIterable, Hashable {
 }
 
 struct Settings: Codable, Equatable {
+    var language: AppLanguage? = .system
     var alternatingBreaks: Bool? = false
     var longBreakMinutes: Int? = 10
     var longBreakEvery: Int? = 4
@@ -71,7 +72,17 @@ final class SitTracker: ObservableObject {
     @Published private(set) var breakTitle: String = Copy.breakTitles[0]
     @Published private(set) var launchAtLogin = false
     @Published var settings: Settings {
-        didSet { persist() }
+        didSet {
+            if oldValue.language != settings.language {
+                let stretchIndex = Copy.stretches.firstIndex(of: stretch) ?? 0
+                let titleIndex = Copy.breakTitles.firstIndex(of: breakTitle) ?? 0
+                L10n.language = settings.language ?? .system
+                stretch = Copy.stretches[stretchIndex]
+                breakTitle = Copy.breakTitles[titleIndex]
+                refreshQuip(force: true)
+            }
+            persist()
+        }
     }
 
     private let defaults: UserDefaults
@@ -95,7 +106,10 @@ final class SitTracker: ObservableObject {
         settings = Self.load("settings", from: defaults) ?? Settings()
         stats = Self.load("stats", from: defaults) ?? DailyStats(day: Self.dayKey())
         history = Self.load("history", from: defaults) ?? [:]
+        L10n.language = settings.language ?? .system
         launchAtLogin = SMAppService.mainApp.status == .enabled
+        stretch = Copy.stretches[0]
+        breakTitle = Copy.breakTitles[0]
         refreshQuip(force: true)
     }
 
@@ -105,7 +119,7 @@ final class SitTracker: ObservableObject {
     var isLongBreak: Bool {
         settings.alternatingBreaks == true && completedBreaks >= max(2, settings.longBreakEvery ?? 4) - 1
     }
-    var breakKind: String { settings.alternatingBreaks == true ? (isLongBreak ? "长休息" : "短休息") : "休息" }
+    var breakKind: String { settings.alternatingBreaks == true ? (isLongBreak ? L10n.text("长休息", "Long break") : L10n.text("短休息", "Short break")) : L10n.text("休息", "Break") }
     var breakDuration: TimeInterval {
         Double(isLongBreak ? max(settings.breakMinutes, settings.longBreakMinutes ?? 10) : settings.breakMinutes) * 60
     }
@@ -141,9 +155,9 @@ final class SitTracker: ObservableObject {
         switch phase {
         case .sitting:
             let m = Int((sitRemaining / 60).rounded(.up))
-            return m <= 0 ? "起身!" : "\(m)m"
-        case .onBreak: return "休息 " + Format.mmss(breakRemaining)
-        case .paused: return "暂停"
+            return m <= 0 ? L10n.text("起身!", "Move!") : "\(m)m"
+        case .onBreak: return L10n.text("休息 ", "Break ") + Format.mmss(breakRemaining)
+        case .paused: return L10n.text("暂停", "Pause")
         }
     }
 
@@ -153,7 +167,7 @@ final class SitTracker: ObservableObject {
     /// 最近 7 天的起身次数，用于小柱状图
     var lastSevenDays: [(label: String, count: Int, isToday: Bool)] {
         let cal = Calendar.current
-        let labels = ["日", "一", "二", "三", "四", "五", "六"]
+        let labels = L10n.isChinese ? ["日", "一", "二", "三", "四", "五", "六"] : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
         return (0..<7).reversed().map { back in
             let date = cal.date(byAdding: .day, value: -back, to: Date())!
             let key = Self.dayKey(date)
@@ -211,7 +225,7 @@ final class SitTracker: ObservableObject {
             extraSeconds = 0
             phase = .sitting
             sitStart = now
-            announce("你离开了 \(Format.minutes(offFor * Self.speed))，计时已重置")
+            announce(L10n.text("你离开了 \(Format.minutes(offFor * Self.speed))，计时已重置", "Away for \(Format.minutes(offFor * Self.speed)). Timer reset."))
             return
         }
 
@@ -278,7 +292,7 @@ final class SitTracker: ObservableObject {
             completedBreaks = 0
             sitStart = now
             sitElapsed = 0
-            announce("欢迎回来！你离开了 \(Format.minutes(awayFor * Self.speed))，计时已重置")
+            announce(L10n.text("欢迎回来！你离开了 \(Format.minutes(awayFor * Self.speed))，计时已重置", "Welcome back! Away for \(Format.minutes(awayFor * Self.speed)). Timer reset."))
         case .onBreak:
             finishBreak(early: true)
         case .paused:
@@ -334,7 +348,7 @@ final class SitTracker: ObservableObject {
             OverlayController.shared.show(tracker: self)
         } else {
             Notifier.shared.notify(title: breakTitle,
-                                   body: "你已经坐了 \(Format.minutes(lastSitLength))。\(stretch.text)")
+                                   body: L10n.text("你已经坐了 \(Format.minutes(lastSitLength))。\(stretch.text)", "You have been sitting for \(Format.minutes(lastSitLength)). \(stretch.text)"))
         }
         saveSession()
         refreshQuip(force: true)
@@ -352,7 +366,7 @@ final class SitTracker: ObservableObject {
         breakElapsed = 0
         saveSession(now: now)
         if settings.soundEnabled { Sounds.play("Pop") }
-        announce(early ? "动完啦？真棒，新一轮开始" : "休息结束，欢迎回来")
+        announce(early ? L10n.text("动完啦？真棒，新一轮开始", "All done! A new round begins.") : L10n.text("休息结束，欢迎回来", "Break finished. Welcome back!"))
     }
 
     /// 跳过只延后提醒，不结算休息，也不推进长短休息轮次。
@@ -365,7 +379,7 @@ final class SitTracker: ObservableObject {
         breakElapsed = 0
         lastTick = now
         saveSession(now: now)
-        announce("已跳过本次，\(settings.sitMinutes) 分钟后再提醒；久坐时间继续累计")
+        announce(L10n.text("已跳过本次，\(settings.sitMinutes) 分钟后再提醒；久坐时间继续累计", "Skipped. Next reminder in \(settings.sitMinutes) min; sitting time keeps counting."))
     }
 
     func snooze() {
@@ -418,14 +432,14 @@ final class SitTracker: ObservableObject {
         sitElapsed = 0
         breakElapsed = 0
         saveSession()
-        announce("好嘞，重新计时")
+        announce(L10n.text("好嘞，重新计时", "All set. Timer reset."))
     }
 
     func setLaunchAtLogin(_ on: Bool) {
         do {
             if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
         } catch {
-            announce("开机启动设置失败：\(error.localizedDescription)")
+            announce(L10n.text("开机启动设置失败：\(error.localizedDescription)", "Could not set launch at login: \(error.localizedDescription)"))
         }
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }

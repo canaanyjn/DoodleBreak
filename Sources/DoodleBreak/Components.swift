@@ -119,11 +119,11 @@ struct WeekChart: View {
         let maxCount = max(1, days.map(\.count).max() ?? 1)
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
-                Text("最近 7 天起身次数")
+                Text(L10n.text("最近 7 天起身次数", "Breaks in the last 7 days"))
                     .font(Hand.font(13, bold: true))
                     .foregroundStyle(Ink.blue)
                 Spacer()
-                Text("共 \(days.map(\.count).reduce(0, +)) 次")
+                Text(L10n.text("共 \(days.map(\.count).reduce(0, +)) 次", "\(days.map(\.count).reduce(0, +)) total"))
                     .font(Hand.font(13, bold: true))
                     .foregroundStyle(Ink.red)
             }
@@ -219,9 +219,9 @@ struct RingTimer: View {
 
     private var subText: String {
         switch tracker.phase {
-        case .sitting: return tracker.snoozeCount > 0 ? "已延后 \(tracker.snoozeCount) 次" : "距离起身"
-        case .onBreak: return "休息中 · 动一动"
-        case .paused: return "已暂停"
+        case .sitting: return tracker.snoozeCount > 0 ? L10n.text("已延后 \(tracker.snoozeCount) 次", "Postponed \(tracker.snoozeCount) times") : L10n.text("距离起身", "Until your next break")
+        case .onBreak: return L10n.text("休息中 · 动一动", "Time to stretch")
+        case .paused: return L10n.text("已暂停", "Paused")
         }
     }
 

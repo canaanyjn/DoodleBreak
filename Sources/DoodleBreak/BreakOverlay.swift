@@ -56,7 +56,7 @@ struct BreakOverlayView: View {
                     .padding(.horizontal, 14)
                     .background(Highlight(seed: SketchCore.hash(tracker.breakTitle)).padding(.vertical, 4))
 
-                Text("你已经连续坐了 \(Format.minutes(tracker.lastSitLength))，站起来给屁股放个假")
+                Text(L10n.text("你已经连续坐了 \(Format.minutes(tracker.lastSitLength))，站起来给屁股放个假", "You have been sitting for \(Format.minutes(tracker.lastSitLength)). Time to stretch."))
                     .font(Hand.font(17))
                     .foregroundStyle(Ink.pencil)
 
@@ -66,17 +66,17 @@ struct BreakOverlayView: View {
                 HStack(spacing: 34) {
                     BreakRing(remaining: tracker.breakRemaining, progress: tracker.progress)
                     VStack(alignment: .leading, spacing: 14) {
-                        InkButton(title: "我动完啦 ✓", kind: .primary, size: 18) { tracker.finishBreak(early: true) }
+                        InkButton(title: L10n.text("我动完啦 ✓", "I'm done ✓"), kind: .primary, size: 18) { tracker.finishBreak(early: true) }
                         InkButton(title: Copy.snoozeLabel(count: tracker.snoozeCount, minutes: tracker.settings.snoozeMinutes),
                                   size: 15) { tracker.snooze() }
                     }
                 }
                 .padding(.top, 8)
 
-                InkButton(title: "跳过本次", kind: .quiet, size: 13) { tracker.skipBreak() }
-                    .help("\(tracker.settings.sitMinutes) 分钟后再提醒，不计为完成休息")
+                InkButton(title: L10n.text("跳过本次", "Skip this break"), kind: .quiet, size: 13) { tracker.skipBreak() }
+                    .help(L10n.text("\(tracker.settings.sitMinutes) 分钟后再提醒，不计为完成休息", "Remind again in \(tracker.settings.sitMinutes) min. Does not count as a break."))
 
-                Text("本次\(tracker.breakKind) · 按 Esc 可以稍后提醒")
+                Text(L10n.text("本次\(tracker.breakKind) · 按 Esc 可以稍后提醒", "\(tracker.breakKind) · Press Esc to postpone"))
                     .font(Hand.font(13))
                     .foregroundStyle(Ink.pencil.opacity(0.8))
                     .padding(.top, 2)
@@ -105,7 +105,7 @@ struct StickyNote: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("试试这个：")
+            Text(L10n.text("试试这个：", "Try this:"))
                 .font(Hand.font(14))
                 .foregroundStyle(Ink.pencil)
             Text(text)
@@ -114,7 +114,7 @@ struct StickyNote: View {
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
-                InkButton(title: "换一个 ↻", kind: .quiet, size: 14, action: onShuffle)
+                InkButton(title: L10n.text("换一个 ↻", "Another one ↻"), kind: .quiet, size: 14, action: onShuffle)
             }
         }
         .padding(.horizontal, 24)
@@ -164,7 +164,7 @@ struct BreakRing: View {
                     .font(Hand.font(30, bold: true))
                     .foregroundStyle(Ink.blue)
                     .monospacedDigit()
-                Text("休息")
+                Text(L10n.text("休息", "Break"))
                     .font(Hand.font(12))
                     .foregroundStyle(Ink.pencil)
             }

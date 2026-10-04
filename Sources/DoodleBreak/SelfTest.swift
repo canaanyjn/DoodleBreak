@@ -122,6 +122,18 @@ enum SelfTest {
         let oldSettings = try? JSONDecoder().decode(Settings.self, from: legacy)
         check("兼容旧设置并保留原间隔", Double(oldSettings?.sitMinutes ?? 0), 50)
 
+        tr.settings.language = .english
+        check("英文休息类型", tr.breakKind == "Long break" ? 1 : 0, 1)
+        check("英文时间格式", Format.minutes(65 * min) == "1 hr 05 min" ? 1 : 0, 1)
+        check("英文拉伸建议", Copy.stretches[0].text.hasPrefix("Reach") ? 1 : 0, 1)
+        let localized = SitTracker(defaults: UserDefaults(suiteName: suite)!)
+        check("语言选择重启保留", localized.settings.language == .english ? 1 : 0, 1)
+        localized.settings.language = .simplifiedChinese
+        check("切换中文立即更新文案", Copy.stretches[0].text.hasPrefix("双手") ? 1 : 0, 1)
+        check("旧设置默认跟随系统", oldSettings?.language == nil ? 1 : 0, 1)
+        localized.settings.language = .system
+        check("跟随系统语言", L10n.isChinese == (Locale.preferredLanguages.first?.hasPrefix("zh") == true) ? 1 : 0, 1)
+
         UserDefaults().removePersistentDomain(forName: suite)
         print(failures == 0 ? "ALL PASSED" : "\(failures) FAILED")
         return failures == 0

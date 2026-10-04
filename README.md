@@ -24,16 +24,17 @@
 Doodle Break lives in your menu bar and tracks how long you have been sitting. When it is time to move, a notebook page drops onto your screen with a stretch suggestion and a short break timer. Everything, from the mascot to the buttons, is rendered in real time as ballpoint-pen doodles on lined paper.
 
 <p align="center">
-  <img src="screenshots/overlay.png" width="820" alt="Full-screen break reminder">
+  <img src="screenshots/en/overlay.png" width="820" alt="Full-screen break reminder">
 </p>
 
 ## Features
 
 - **Menu bar countdown.** A hand-drawn ring shows the time left in the current sitting session, with the remaining minutes beside it.
 - **A mascot with moods.** Doodle, the bean on the chair, goes from cheerful to sweaty to panicking as the session runs out. It jumps up and cheers during breaks and dozes off while the timer is paused.
-- **Full-screen break page.** When the session ends, a taped notebook page appears on every display. It shows a random stretch (14 built in, shuffleable), a break countdown, and a snooze button whose copy gets more sarcastic each time you use it. Press <kbd>Esc</kbd> to snooze.
+- **Full-screen break page.** When the session ends, a taped notebook page appears on every display. It shows a random stretch (14 built in, shuffleable), a break countdown, and options to postpone or skip the reminder. Skipping keeps accumulated sitting time and does not count as a completed break. Press <kbd>Esc</kbd> to postpone.
 - **Accurate away detection.** Only a locked screen or a sleeping Mac counts as leaving your desk. Reading or watching a video without touching the keyboard does not reset the timer.
 - **Survives restarts.** The session is saved to disk, so quitting, updating, or relaunching the app does not lose your progress.
+- **Alternating breaks.** Optionally take a longer break every few completed rounds. The default is a 10-minute long break every fourth round; both values are adjustable.
 - **Daily stats.** Stand-ups, snoozes, and your longest sitting streak for today, plus a seven-day history chart.
 - **No dependencies.** Pure Swift and SwiftUI, built with Swift Package Manager. No network access and no analytics.
 
@@ -41,7 +42,7 @@ Doodle Break lives in your menu bar and tracks how long you have been sitting. W
 
 | Sitting | On a break | Settings |
 |:---:|:---:|:---:|
-| <img src="screenshots/popover.png" width="250" alt="Menu bar popover"> | <img src="screenshots/popover-break.png" width="250" alt="Popover during a break"> | <img src="screenshots/popover-settings.png" width="250" alt="Settings"> |
+| <img src="screenshots/en/popover.png" width="250" alt="Menu bar popover"> | <img src="screenshots/en/popover-break.png" width="250" alt="Popover during a break"> | <img src="screenshots/en/popover-settings.png" width="250" alt="Settings"> |
 
 The six moods, from a fresh session to a paused timer:
 
@@ -49,7 +50,7 @@ The six moods, from a fresh session to a paused timer:
   <img src="screenshots/moods.png" width="820" alt="Mascot moods">
 </p>
 
-> The interface is currently in Simplified Chinese.
+> Available in English and Simplified Chinese. Choose System default, 简体中文, or English in Settings.
 
 ## Requirements
 
@@ -126,7 +127,7 @@ The app binary accepts a few flags for development:
 | Flag | What it does |
 |---|---|
 | `--selftest` | Runs 15 timer scenarios (restarts, locks, sleep, idle input, clock jumps) with simulated timestamps, then exits with a non-zero status on failure. Uses an isolated store. |
-| `--preview <dir>` | Renders every screen offscreen to PNG files in `<dir>`, then exits. |
+| `--preview <dir>` | Renders Chinese screenshots with isolated sample data, then exits. Add `--english` for English screenshots. |
 | `--demo-break` | Shows the break page immediately after launch. |
 | `--diag` | Prints the app's own windows, including the status item, after two seconds. |
 

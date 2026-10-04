@@ -27,6 +27,7 @@
 - **重启不丢进度**：计时状态会存盘，退出、重启、更新 App 后接着算；如果 App 关掉的时间超过设定时长，就当你离开过。
 - **今日统计 + 最近 7 天柱状图**：柱子是圆珠笔涂出来的，今天用红笔圈出来。
 - **交替休息（可选）**：在设置中开启「短休息与长休息交替」，默认每 4 轮安排一次 10 分钟长休息，可自行调节。完成休息（包括「动完啦」）才推进轮次，延后提醒不推进；长时间锁屏/睡眠或「刚动过」会重新开始周期。轮次会随计时状态保存。参数是可调的产品默认值，不代表个体化健康建议。
+- **中英双语**：默认跟随系统语言，也可在设置中选择「简体中文 / English」，立即生效。
 - **可调设置**：提醒间隔、休息时长、离开判定时长、延后提醒时长、是否全屏、提示音、菜单栏倒计时、开机启动。
 
 ## 构建与安装
@@ -55,7 +56,7 @@ cp -R "build/Doodle Break.app" /Applications/
 
 - **加速模式**：`DOODLE_FAST=1 "build/Doodle Break.app/Contents/MacOS/DoodleBreak"`，1 秒当 1 分钟用，数据存在单独的偏好区，不会弄脏正式统计。
 - **直接看休息界面**：`open "build/Doodle Break.app" --args --demo-break`
-- **离屏渲染所有界面为 PNG**：`"build/Doodle Break.app/Contents/MacOS/DoodleBreak" --preview ./preview`
+- **离屏渲染所有界面为 PNG（加 `--english` 输出英文，使用独立样例数据）**：`"build/Doodle Break.app/Contents/MacOS/DoodleBreak" --preview ./preview`
 - **计时逻辑自测**：加 `--selftest`，用假时间模拟重启、锁屏、睡眠，逐条打印 PASS/FAIL，不碰真实数据。
 - **自检**：加 `--diag`，2 秒后打印 App 自己的窗口（含状态栏图标窗口）并退出。
 - **装了 Ice、Bartender 这类菜单栏管理器？** 新图标默认可能被收进隐藏区，按住 ⌘ 把它拖到可见区即可。

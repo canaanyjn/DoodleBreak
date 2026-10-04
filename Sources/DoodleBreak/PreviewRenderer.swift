@@ -7,7 +7,13 @@ enum PreviewRenderer {
     static func run(outputDir: String) {
         let dir = URL(fileURLWithPath: outputDir)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let tracker = SitTracker.shared
+        let suite = "com.tcn.DoodleBreak.preview"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let tracker = SitTracker(defaults: defaults)
+        tracker.settings.language = CommandLine.arguments.contains("--english") ? .english : .simplifiedChinese
+        tracker.settings.alternatingBreaks = true
 
         tracker.applyPreview(phase: .sitting, progress: 0.62)
         save(MenuPopover().environmentObject(tracker), "popover.png", scale: 2, dir)
@@ -51,14 +57,32 @@ enum PreviewRenderer {
     }
 
     private static func save<V: View>(_ view: V, _ name: String, scale: CGFloat, _ dir: URL) {
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = scale
-        guard let cg = renderer.cgImage else {
-            print("render failed: \(name)")
+        if name != "popover-settings.png" {
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = scale
+            guard let cg = renderer.cgImage,
+                  let data = NSBitmapImageRep(cgImage: cg).representation(using: .png, properties: [:]) else {
+                fatalError("Could not render \(name)")
+            }
+            do { try data.write(to: dir.appendingPathComponent(name)) }
+            catch { fatalError("Could not save \(name): \(error)") }
             return
         }
-        let rep = NSBitmapImageRep(cgImage: cg)
-        guard let data = rep.representation(using: .png, properties: [:]) else { return }
-        try? data.write(to: dir.appendingPathComponent(name))
+        let host = NSHostingView(rootView: view)
+        let size = host.fittingSize
+        host.frame = NSRect(origin: .zero, size: size)
+        let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+        guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else {
+            fatalError("Could not render \(name)")
+        }
+        host.cacheDisplay(in: host.bounds, to: rep)
+        guard let data = rep.representation(using: .png, properties: [:]) else {
+            fatalError("Could not encode \(name)")
+        }
+        do { try data.write(to: dir.appendingPathComponent(name)) }
+        catch { fatalError("Could not save \(name): \(error)") }
     }
 }
